@@ -1,0 +1,6 @@
+{
+  "name": "TaskHub",
+  "description": "Premium micro-task and earning platform with Admin and User panels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
