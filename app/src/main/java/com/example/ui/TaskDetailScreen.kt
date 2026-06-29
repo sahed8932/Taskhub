@@ -32,6 +32,8 @@ fun TaskDetailScreen(
     onNavigate: (Screen) -> Unit
 ) {
     val selectedTask by viewModel.selectedTask.collectAsState()
+    val acceptedTaskIds by viewModel.acceptedTaskIds.collectAsState()
+    val isAccepted = selectedTask?.let { it.id in acceptedTaskIds } ?: false
     var screenshots = remember { mutableStateListOf<String>() }
     var noteText by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
@@ -94,7 +96,7 @@ fun TaskDetailScreen(
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
-                            text = "+${task.reward} Coins",
+                            text = "+${task.reward} BDT",
                             color = TelegramBlue,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
@@ -136,121 +138,180 @@ fun TaskDetailScreen(
 
         // Proof Submission section
         item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(SlateCard)
-                    .border(1.dp, HighDensityBorder, RoundedCornerShape(16.dp))
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Submit Proof of Completion",
-                    color = TextLight,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Screenshot simulator button
-                Text(
-                    text = "Upload Screenshots (Proofs)",
-                    color = TextMuted,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            if (!isAccepted) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(SlateCard)
+                        .border(1.dp, HighDensityBorder, RoundedCornerShape(16.dp))
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Simulation upload trigger
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(TelegramBlue.copy(alpha = 0.1f))
-                            .border(1.dp, TelegramBlue, RoundedCornerShape(8.dp))
-                            .clickable {
-                                // Add simulated high-quality mock screenshot
-                                val index = screenshots.size + 1
-                                screenshots.add("https://picsum.photos/400/800?random=$index")
-                            },
-                        contentAlignment = Alignment.Center
+                    Icon(
+                        imageVector = Icons.Filled.AssignmentTurnedIn,
+                        contentDescription = null,
+                        tint = TelegramBlue,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Accept This Task",
+                        color = TextLight,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Accepting this task secures your slot for completion. You will then be able to submit your proof.",
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.acceptTask(task.id) },
+                        colors = ButtonDefaults.buttonColors(containerColor = TelegramBlue),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(imageVector = Icons.Filled.AddAPhoto, contentDescription = "Add", tint = TelegramBlue, modifier = Modifier.size(20.dp))
-                            Text("Mock Up", color = TelegramBlue, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                        }
+                        Text("Accept Task", fontWeight = FontWeight.Bold, color = ColorPrimaryOnText)
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(SlateCard)
+                        .border(1.dp, HighDensityBorder, RoundedCornerShape(16.dp))
+                        .padding(16.dp)
+                ) {
+                    // Accepted Badge Header
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = "Active", tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                        Text(
+                            text = "Task Status: Active & Accepted",
+                            color = Color(0xFF4CAF50),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
-                    // Display uploaded screenshots
-                    screenshots.forEachIndexed { idx, url ->
+                    Text(
+                        text = "Submit Proof of Completion",
+                        color = TextLight,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Screenshot simulator button
+                    Text(
+                        text = "Upload Screenshots (Proofs)",
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Simulation upload trigger
                         Box(
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color.DarkGray),
+                                .background(TelegramBlue.copy(alpha = 0.1f))
+                                .border(1.dp, TelegramBlue, RoundedCornerShape(8.dp))
+                                .clickable {
+                                    // Add simulated high-quality mock screenshot
+                                    val index = screenshots.size + 1
+                                    screenshots.add("https://picsum.photos/400/800?random=$index")
+                                },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Screen\n#${idx + 1}",
-                                color = TextLight,
-                                fontSize = 10.sp,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.Bold
-                            )
-                            // Remove screenshot overlay
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(imageVector = Icons.Filled.AddAPhoto, contentDescription = "Add", tint = TelegramBlue, modifier = Modifier.size(20.dp))
+                                Text("Mock Up", color = TelegramBlue, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        // Display uploaded screenshots
+                        screenshots.forEachIndexed { idx, url ->
                             Box(
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .size(16.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Red)
-                                    .clickable { screenshots.removeAt(idx) },
+                                    .size(60.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.DarkGray),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.Filled.Close, contentDescription = "Remove", tint = TextLight, modifier = Modifier.size(10.dp))
+                                Text(
+                                    text = "Screen\n#${idx + 1}",
+                                    color = TextLight,
+                                    fontSize = 10.sp,
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                // Remove screenshot overlay
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .size(16.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Red)
+                                        .clickable { screenshots.removeAt(idx) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Remove", tint = TextLight, modifier = Modifier.size(10.dp))
+                                }
                             }
                         }
                     }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Notes Field
-                OutlinedTextField(
-                    value = noteText,
-                    onValueChange = { noteText = it },
-                    placeholder = { Text("Add optional note/username/ID...", color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = TelegramBlue,
-                        unfocusedBorderColor = HighDensityBorder,
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3,
-                    shape = RoundedCornerShape(8.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                    // Notes Field
+                    OutlinedTextField(
+                        value = noteText,
+                        onValueChange = { noteText = it },
+                        placeholder = { Text("Add optional note/username/ID...", color = TextMuted) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = TelegramBlue,
+                            unfocusedBorderColor = HighDensityBorder,
+                            focusedTextColor = TextLight,
+                            unfocusedTextColor = TextLight
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Submit Button
-                Button(
-                    onClick = {
-                        if (screenshots.isEmpty()) {
-                            // Needs at least one screenshot simulation
-                            screenshots.add("https://picsum.photos/400/800?random=default")
-                        }
-                        isSubmitting = true
-                        viewModel.submitTask(task.id, screenshots.toList(), noteText)
-                        onNavigate(Screen.UserDashboard)
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = TelegramBlue),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Submit Task proof", fontWeight = FontWeight.Bold)
+                    // Submit Button
+                    Button(
+                        onClick = {
+                            if (screenshots.isEmpty()) {
+                                // Needs at least one screenshot simulation
+                                screenshots.add("https://picsum.photos/400/800?random=default")
+                            }
+                            isSubmitting = true
+                            viewModel.submitTask(task.id, screenshots.toList(), noteText)
+                            onNavigate(Screen.UserDashboard)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = TelegramBlue),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Submit Task proof", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

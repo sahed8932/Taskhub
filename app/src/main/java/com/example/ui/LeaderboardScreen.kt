@@ -165,7 +165,7 @@ fun LeaderboardScreen(
                             Icon(imageVector = Icons.Filled.WorkspacePremium, contentDescription = "Earned", tint = AccentGreen, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "${String.format("%.1f", user.totalEarned)} Coins",
+                                text = "${String.format("%.1f", user.totalEarned)} BDT",
                                 color = AccentGreen,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp

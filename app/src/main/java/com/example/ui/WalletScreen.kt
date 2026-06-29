@@ -54,14 +54,14 @@ fun WalletScreen(
                 ) {
                     DashboardStatCard(
                         title = "Available Balance",
-                        value = "${String.format("%.2f", user.totalBalance)} Coins",
+                        value = "${String.format("%.2f", user.totalBalance)} BDT",
                         icon = Icons.Filled.AccountBalanceWallet,
                         tint = AccentGold,
                         modifier = Modifier.weight(1f)
                     )
                     DashboardStatCard(
                         title = "Pending Balance",
-                        value = "${String.format("%.2f", user.pendingBalance)} Coins",
+                        value = "${String.format("%.2f", user.pendingBalance)} BDT",
                         icon = Icons.Filled.HourglassEmpty,
                         tint = TextMuted,
                         modifier = Modifier.weight(1f)
@@ -138,12 +138,12 @@ fun WalletScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Withdrawal Amount
-                Text("Withdrawal Amount (Coins)", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("Withdrawal Amount (BDT)", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
                     value = withdrawAmount,
                     onValueChange = { withdrawAmount = it },
-                    placeholder = { Text("Minimum 20.0 Coins", color = TextMuted) },
+                    placeholder = { Text("Minimum 20.0 BDT", color = TextMuted) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = TelegramBlue,
                         unfocusedBorderColor = HighDensityBorder,
@@ -262,7 +262,7 @@ fun WithdrawalRow(wr: WithdrawalEntity) {
                 fontSize = 11.sp
             )
             Text(
-                text = "Fee deducted: ${String.format("%.2f", wr.fee)} Coins",
+                text = "Fee deducted: ${String.format("%.2f", wr.fee)} BDT",
                 color = TextMuted,
                 fontSize = 10.sp
             )
@@ -270,7 +270,7 @@ fun WithdrawalRow(wr: WithdrawalEntity) {
 
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "${String.format("%.2f", wr.amount)} Coins",
+                text = "${String.format("%.2f", wr.amount)} BDT",
                 color = TextLight,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
@@ -325,7 +325,7 @@ fun TransactionRow(txn: TransactionEntity) {
         }
 
         Text(
-            text = "$amtSign${String.format("%.2f", txn.amount)} Coins",
+            text = "$amtSign${String.format("%.2f", txn.amount)} BDT",
             color = amtColor,
             fontWeight = FontWeight.Bold,
             fontSize = 13.sp

@@ -26,6 +26,23 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
     private val _isAdminMode = MutableStateFlow(false)
     val isAdminMode: StateFlow<Boolean> = _isAdminMode.asStateFlow()
 
+    // Admin locked state
+    private val _isAdminLocked = MutableStateFlow(true)
+    val isAdminLocked: StateFlow<Boolean> = _isAdminLocked.asStateFlow()
+
+    fun unlockAdmin(password: String): Boolean {
+        return if (password == AdminConfig.ADMIN_PASSWORD) {
+            _isAdminLocked.value = false
+            true
+        } else {
+            false
+        }
+    }
+
+    fun lockAdmin() {
+        _isAdminLocked.value = true
+    }
+
     // Logged in User state
     private val _currentUser = MutableStateFlow<UserEntity?>(null)
     val currentUser: StateFlow<UserEntity?> = _currentUser.asStateFlow()
@@ -99,15 +116,98 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
     private val _toastMessage = MutableSharedFlow<String>()
     val toastMessage = _toastMessage.asSharedFlow()
 
+    // Accepted Task IDs in current session
+    private val _acceptedTaskIds = MutableStateFlow<Set<Int>>(emptySet())
+    val acceptedTaskIds: StateFlow<Set<Int>> = _acceptedTaskIds.asStateFlow()
+
+    fun acceptTask(taskId: Int) {
+        val current = _acceptedTaskIds.value
+        if (taskId !in current) {
+            _acceptedTaskIds.value = current + taskId
+            viewModelScope.launch {
+                val task = repository.getTaskById(taskId)
+                val title = task?.title ?: "Task"
+                showGlobalNotification(
+                    title = "Task Accepted! 🎉",
+                    message = "You have accepted '$title'. Follow the instructions to complete it.",
+                    type = NotificationType.SUCCESS
+                )
+            }
+        }
+    }
+
+    // Custom Global Success/Info Notifications
+    private val _activeNotification = MutableStateFlow<GlobalNotification?>(null)
+    val activeNotification: StateFlow<GlobalNotification?> = _activeNotification.asStateFlow()
+
+    fun showGlobalNotification(title: String, message: String, type: NotificationType = NotificationType.SUCCESS) {
+        viewModelScope.launch {
+            _activeNotification.value = GlobalNotification(title, message, type)
+            kotlinx.coroutines.delay(4000)
+            if (_activeNotification.value?.title == title) {
+                _activeNotification.value = null
+            }
+        }
+    }
+
+    fun dismissGlobalNotification() {
+        _activeNotification.value = null
+    }
+
     init {
         viewModelScope.launch {
             repository.seedDatabaseIfEmpty()
-            // Set default active user (jrshakibyt)
-            val user = repository.getUserByTelegramId("738291032")
-            if (user != null) {
-                _currentUser.value = user
-                observeUserData(user.id)
+            val prefs = getApplication<Application>().getSharedPreferences("taskhub_prefs", android.content.Context.MODE_PRIVATE)
+            val savedId = prefs.getString("telegram_id", "738291032") ?: "738291032"
+            val savedUsername = prefs.getString("username", "jrshakibyt") ?: "jrshakibyt"
+            
+            var user = repository.getUserByTelegramId(savedId)
+            if (user == null) {
+                // Auto create account with Telegram ID
+                val newUser = UserEntity(
+                    telegramId = savedId,
+                    username = savedUsername,
+                    totalBalance = 145.0, // Initial balance in BDT
+                    pendingBalance = 25.0,
+                    totalEarned = 170.0,
+                    role = if (savedId == "1122334455") "admin" else "user"
+                )
+                val newId = repository.insertUser(newUser).toInt()
+                user = newUser.copy(id = newId)
             }
+            _currentUser.value = user
+            observeUserData(user.id)
+        }
+    }
+
+    fun loginWithTelegram(telegramId: String, username: String) {
+        viewModelScope.launch {
+            val prefs = getApplication<Application>().getSharedPreferences("taskhub_prefs", android.content.Context.MODE_PRIVATE)
+            prefs.edit()
+                .putString("telegram_id", telegramId)
+                .putString("username", username)
+                .apply()
+
+            var user = repository.getUserByTelegramId(telegramId)
+            if (user == null) {
+                val newUser = UserEntity(
+                    telegramId = telegramId,
+                    username = username,
+                    totalBalance = 50.0, // Starter bonus in BDT
+                    pendingBalance = 0.0,
+                    totalEarned = 50.0,
+                    role = if (telegramId == "1122334455") "admin" else "user"
+                )
+                val newId = repository.insertUser(newUser).toInt()
+                user = newUser.copy(id = newId)
+            }
+            _currentUser.value = user
+            observeUserData(user.id)
+            showGlobalNotification(
+                title = "Telegram Connected ⚡",
+                message = "Logged in as @$username ($telegramId)",
+                type = NotificationType.SUCCESS
+            )
         }
     }
 
@@ -133,6 +233,9 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val nextAdminMode = !_isAdminMode.value
             _isAdminMode.value = nextAdminMode
+            if (!nextAdminMode) {
+                lockAdmin()
+            }
             val targetTelegramId = if (nextAdminMode) "1122334455" else "738291032"
             val targetUser = repository.getUserByTelegramId(targetTelegramId)
             if (targetUser != null) {
@@ -182,11 +285,11 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
             repository.insertNotification(NotificationEntity(
                 userId = user.id,
                 title = "Daily Bonus Claimed!",
-                message = "Earned $bonusReward Coins. Day $newStreak streak active!",
+                message = "Earned $bonusReward BDT. Day $newStreak streak active!",
                 type = "Bonus"
             ))
 
-            _toastMessage.emit("Checked-in! Streak: $newStreak days. +$bonusReward Coins!")
+            _toastMessage.emit("Checked-in! Streak: $newStreak days. +$bonusReward BDT!")
             checkAchievements(user.id)
         }
     }
@@ -216,11 +319,11 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
             repository.insertNotification(NotificationEntity(
                 userId = user.id,
                 title = "Lucky Spin Wheel!",
-                message = "You won $winAmount Coins from the spin wheel!",
+                message = "You won $winAmount BDT from the spin wheel!",
                 type = "Bonus"
             ))
 
-            _toastMessage.emit("Spin Result: Won $winAmount Coins!")
+            _toastMessage.emit("Spin Result: Won $winAmount BDT!")
             checkAchievements(user.id)
         }
     }
@@ -247,11 +350,11 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
             repository.insertNotification(NotificationEntity(
                 userId = user.id,
                 title = "Lucky Box Opened!",
-                message = "You opened a secret lucky box and found $boxReward Coins!",
+                message = "You opened a secret lucky box and found $boxReward BDT!",
                 type = "Bonus"
             ))
 
-            _toastMessage.emit("Lucky Box: Found $boxReward Coins!")
+            _toastMessage.emit("Lucky Box: Found $boxReward BDT!")
             checkAchievements(user.id)
         }
     }
@@ -295,6 +398,11 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
                 type = "Task"
             ))
 
+            showGlobalNotification(
+                title = "Task Completed! 🚀",
+                message = "Your proof for '${task.title}' has been submitted successfully and is pending review.",
+                type = NotificationType.SUCCESS
+            )
             _toastMessage.emit("Submission received! Pending Review.")
         }
     }
@@ -305,7 +413,7 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
         if (user.isBanned) return
         viewModelScope.launch {
             if (amount < 20.0) {
-                _toastMessage.emit("Minimum withdrawal is 20.0 Coins.")
+                _toastMessage.emit("Minimum withdrawal is 20.0 BDT.")
                 return@launch
             }
             if (amount > user.totalBalance) {
@@ -340,7 +448,7 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
             repository.insertNotification(NotificationEntity(
                 userId = user.id,
                 title = "Withdrawal Pending",
-                message = "Your request to withdraw ${amount - fee} Coins via $method is processing.",
+                message = "Your request to withdraw ${amount - fee} BDT via $method is processing.",
                 type = "Withdrawal Update"
             ))
 
@@ -385,11 +493,11 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
                 repository.insertNotification(NotificationEntity(
                     userId = user.id,
                     title = "Promo Code Applied!",
-                    message = "Successfully claimed $amount Coins from code: $code!",
+                    message = "Successfully claimed $amount BDT from code: $code!",
                     type = "Bonus"
                 ))
 
-                _toastMessage.emit("Success! +$amount Coins added.")
+                _toastMessage.emit("Success! +$amount BDT added.")
             } else {
                 _toastMessage.emit("Invalid promo code.")
             }
@@ -439,7 +547,7 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
             repository.insertNotification(NotificationEntity(
                 userId = user.id,
                 title = "Task Approved!",
-                message = "Your submission for '${task.title}' has been approved! +${task.reward} Coins added.",
+                message = "Your submission for '${task.title}' has been approved! +${task.reward} BDT added.",
                 type = "Task Approved"
             ))
 
@@ -493,7 +601,7 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
         repository.insertNotification(NotificationEntity(
             userId = referrer.id,
             title = "Referral Earnings!",
-            message = "Received $reward Coins: $desc",
+            message = "Received $reward BDT: $desc",
             type = "Referral Reward"
         ))
     }
@@ -566,7 +674,7 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
             repository.insertNotification(NotificationEntity(
                 userId = withdrawal.userId,
                 title = "Withdrawal Approved!",
-                message = "Your cashout request of ${withdrawal.amount} Coins via ${withdrawal.method} has been approved.",
+                message = "Your cashout request of ${withdrawal.amount} BDT via ${withdrawal.method} has been approved.",
                 type = "Withdrawal Update"
             ))
 
@@ -600,7 +708,7 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
             repository.insertNotification(NotificationEntity(
                 userId = withdrawal.userId,
                 title = "Withdrawal Rejected!",
-                message = "Your cashout request of ${withdrawal.amount} Coins via ${withdrawal.method} was rejected. Funds returned.",
+                message = "Your cashout request of ${withdrawal.amount} BDT via ${withdrawal.method} was rejected. Funds returned.",
                 type = "Withdrawal Update"
             ))
 
@@ -638,7 +746,7 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
             repository.insertNotification(NotificationEntity(
                 userId = -1, // global
                 title = "New Task Available!",
-                message = "Complete '$title' and earn $reward Coins instantly!",
+                message = "Complete '$title' and earn $reward BDT instantly!",
                 type = "New Task"
             ))
 
@@ -727,11 +835,11 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
             repository.insertNotification(NotificationEntity(
                 userId = user.id,
                 title = "Balance Adjusted",
-                message = "Admin adjusted your balance by $adjustment Coins. Reason: $reason",
+                message = "Admin adjusted your balance by $adjustment BDT. Reason: $reason",
                 type = "Bonus"
             ))
 
-            _toastMessage.emit("User balance adjusted by $adjustment Coins.")
+            _toastMessage.emit("User balance adjusted by $adjustment BDT.")
         }
     }
 
@@ -793,7 +901,7 @@ class TaskHubViewModel(application: Application) : AndroidViewModel(application)
                 repository.insertNotification(NotificationEntity(
                     userId = userId,
                     title = "Badge Unlocked: $title!",
-                    message = "Congratulations! You have completed $threshold tasks. +$bonusCoins Coins added!",
+                    message = "Congratulations! You have completed $threshold tasks. +$bonusCoins BDT added!",
                     type = "Bonus"
                 ))
             }
@@ -810,3 +918,13 @@ class TaskHubViewModelFactory(private val application: Application) : ViewModelP
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+
+enum class NotificationType {
+    SUCCESS, INFO, WARNING
+}
+
+data class GlobalNotification(
+    val title: String,
+    val message: String,
+    val type: NotificationType = NotificationType.SUCCESS
+)

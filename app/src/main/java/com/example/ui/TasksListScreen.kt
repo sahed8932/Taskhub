@@ -235,7 +235,7 @@ fun TaskCard(
                     border = androidx.compose.foundation.BorderStroke(1.dp, TelegramBlue.copy(alpha = 0.2f))
                 ) {
                     Text(
-                        text = "+${String.format("%.1f", task.reward)} Coins",
+                        text = "+${String.format("%.1f", task.reward)} BDT",
                         color = TelegramBlue,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,

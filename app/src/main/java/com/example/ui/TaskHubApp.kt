@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -58,6 +60,7 @@ fun TaskHubApp(
     var currentScreen by currentScreenState
     val isAdminMode by viewModel.isAdminMode.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
+    val activeNotification by viewModel.activeNotification.collectAsState()
     val toastState = remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -72,8 +75,9 @@ fun TaskHubApp(
         colors = listOf(SlateBackground, Color(0xFF07080A))
     )
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -282,6 +286,117 @@ fun TaskHubApp(
                         onNavigate = { currentScreen = it }
                     )
                 }
+            }
+        }
+    }
+
+    // Floating global notifications
+    AnimatedVisibility(
+        visible = activeNotification != null,
+        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .zIndex(99f)
+    ) {
+        activeNotification?.let { notif ->
+            GlobalNotificationOverlay(
+                notification = notif,
+                onDismiss = { viewModel.dismissGlobalNotification() }
+            )
+        }
+    }
+}
+}
+
+@Composable
+fun GlobalNotificationOverlay(
+    notification: GlobalNotification,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = SlateCard.copy(alpha = 0.95f)
+        ),
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 24.dp)
+            .border(
+                1.dp,
+                Brush.linearGradient(
+                    colors = listOf(
+                        TelegramBlue.copy(alpha = 0.8f),
+                        Color(0xFF8B5CF6).copy(alpha = 0.8f)
+                    )
+                ),
+                RoundedCornerShape(16.dp)
+            )
+            .clickable { onDismiss() }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when (notification.type) {
+                            NotificationType.SUCCESS -> Color(0xFF4CAF50).copy(alpha = 0.15f)
+                            NotificationType.WARNING -> Color.Red.copy(alpha = 0.15f)
+                            else -> TelegramBlue.copy(alpha = 0.15f)
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = when (notification.type) {
+                        NotificationType.SUCCESS -> Icons.Filled.CheckCircle
+                        NotificationType.WARNING -> Icons.Filled.Warning
+                        else -> Icons.Filled.Info
+                    },
+                    contentDescription = null,
+                    tint = when (notification.type) {
+                        NotificationType.SUCCESS -> Color(0xFF4CAF50)
+                        NotificationType.WARNING -> Color.Red
+                        else -> TelegramBlue
+                    },
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = notification.title,
+                    color = TextLight,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = notification.message,
+                    color = TextMuted,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Close",
+                    tint = TextMuted,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }

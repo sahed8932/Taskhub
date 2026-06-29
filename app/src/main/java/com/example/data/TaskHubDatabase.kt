@@ -28,7 +28,7 @@ data class UserEntity(
     val totalBalance: Double,
     val pendingBalance: Double,
     val totalEarned: Double,
-    val referralEarnings: Double,
+    val referralEarnings: Double = 0.0,
     val referralsL1: Int = 0,
     val referralsL2: Int = 0,
     val referralsL3: Int = 0,

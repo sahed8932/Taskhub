@@ -240,13 +240,13 @@ class TaskHubRepository(private val dao: TaskHubDao) {
             dao.insertNotification(NotificationEntity(
                 userId = mainUserId,
                 title = "Welcome to TaskHub!",
-                message = "Earn coins by completing tasks. Daily bonuses, spin wheels, and lucky boxes are waiting for you!",
+                message = "Earn money by completing tasks. Daily bonuses, spin wheels, and lucky boxes are waiting for you!",
                 type = "Announcement"
             ))
             dao.insertNotification(NotificationEntity(
                 userId = mainUserId,
                 title = "Task Approved!",
-                message = "Your submission for 'YouTube Comment' has been approved. +5.0 Coins added.",
+                message = "Your submission for 'YouTube Comment' has been approved. +5.0 BDT added.",
                 type = "Task Approved"
             ))
 

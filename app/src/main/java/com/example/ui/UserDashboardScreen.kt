@@ -154,7 +154,7 @@ fun UserDashboardScreen(
                         )
                         DashboardStatCard(
                             title = "Referral Income",
-                            value = "${String.format("%.1f", user.referralEarnings)} Coins",
+                            value = "${String.format("%.1f", user.referralEarnings)} BDT",
                             icon = Icons.Filled.Group,
                             tint = AccentGold,
                             modifier = itemWidth
@@ -532,7 +532,7 @@ fun MajesticBalanceCard(
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            text = "COINS",
+                            text = "BDT",
                             color = Color(0xFF381E72),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,

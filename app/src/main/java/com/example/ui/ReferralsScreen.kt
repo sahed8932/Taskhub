@@ -77,7 +77,7 @@ fun ReferralsScreen(
                         Column(horizontalAlignment = Alignment.End) {
                             Text("Referral Income", color = TextMuted, fontSize = 11.sp)
                             Text(
-                                text = "${String.format("%.2f", user.referralEarnings)} Coins",
+                                text = "${String.format("%.2f", user.referralEarnings)} BDT",
                                 color = AccentGreen,
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold

@@ -207,7 +207,7 @@ fun DailyBonusScreen(
                     modifier = Modifier.align(Alignment.Start)
                 )
                 Text(
-                    text = "Open a box and receive up to 50 Coins instantly!",
+                    text = "Open a box and receive up to 50 BDT instantly!",
                     color = TextMuted,
                     fontSize = 11.sp,
                     modifier = Modifier.align(Alignment.Start)
